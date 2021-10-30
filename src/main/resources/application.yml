@@ -1,0 +1,30 @@
+spring:
+  sql:
+    init:
+      mode: never
+  datasource:
+#    url: jdbc:h2:file:./db/tenants.db
+    url: jdbc:h2:mem:tenants;
+    jdbcUrl: jdbc:h2:mem:tenants;
+    username: username
+    password: password
+    driverClassName: org.h2.Driver
+    hikari:
+      pool-name: tenants
+  jpa:
+    database: h2
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        generate_statistics: false
+        default_schema: public
+        temp:
+          use_jdbc_metadata_defaults:  false
+    show-sql:  true
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    defer-datasource-initialization: false
+  h2:
+    console:
+      enabled: true
