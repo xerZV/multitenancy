@@ -1,18 +1,31 @@
 package com.simitchiyski.multitenant.config.tenant;
 
-public class TenantContext {
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
-	private static final ThreadLocal<String> currentTenant = new ThreadLocal<>();
+import static java.util.Optional.ofNullable;
 
-	public static void setCurrentTenant(String tenantId) {
-		currentTenant.set(tenantId);
-	}
+public final class TenantContext {
 
-	public static String getCurrentTenant() {
-		return currentTenant.get();
-	}
+    private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
 
-	public static void clear() {
-    	currentTenant.remove();
+    private TenantContext() {
+    }
+
+    public static void setCurrentTenant(String tenantId) {
+        CURRENT_TENANT.set(tenantId);
+    }
+
+    public static String getCurrentTenant() {
+        return CURRENT_TENANT.get();
+    }
+
+    public static void clear() {
+        CURRENT_TENANT.remove();
+    }
+
+    public static <T> Optional<T> withTenant(String newTenantId, Callable<T> supplier) throws Exception {
+        setCurrentTenant(newTenantId);
+        return ofNullable(supplier.call());
     }
 }

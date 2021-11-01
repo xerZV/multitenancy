@@ -1,23 +1,21 @@
 package com.simitchiyski.multitenant.web.tenant.app.setting.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Value;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-@Getter
-@Setter
+@Value
 public class AppSettingCreateDto {
     @NotNull
     @Size(min = 3, max = 50)
-    private String key;
+    String key;
 
     @NotNull
     @Size(min = 3, max = 50)
-    private String value;
+    String value;
 
     @NotNull
     @Size(min = 3, max = 100)
-    private String type;
+    String type;
 }

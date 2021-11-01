@@ -3,7 +3,6 @@ package com.simitchiyski.multitenant.config.db;
 import com.simitchiyski.multitenant.core.admin.tenant.Tenant;
 import com.simitchiyski.multitenant.core.admin.tenant.TenantDataSourceConfig;
 import com.simitchiyski.multitenant.core.admin.tenant.TenantRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.engine.jdbc.connections.spi.AbstractDataSourceBasedMultiTenantConnectionProviderImpl;
 import org.hibernate.service.spi.Stoppable;
@@ -13,11 +12,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.stereotype.Component;
 
+import javax.persistence.EntityNotFoundException;
 import javax.sql.DataSource;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static java.util.Objects.nonNull;
+import static com.simitchiyski.multitenant.config.tenant.DefaultCurrentTenantIdentifierResolver.DEFAULT;
 
 @Slf4j
 @Component
@@ -29,19 +29,30 @@ public class DefaultDataSourceBasedMultiTenantConnectionProvider extends Abstrac
     @Autowired
     private TenantRepository tenantRepository;
 
-    private final Map<String, DataSource> tenantDataSources = new HashMap<>();
+    private final Map<String, DataSource> tenantDataSources = new ConcurrentHashMap<>();
 
     @Override
     protected DataSource selectAnyDataSource() {
-        return tenantDataSources.values().iterator().next(); //TODO
+        log.info("selecting any DataSource");
+
+        if (tenantDataSources.isEmpty()) {
+            tenantRepository.findAll().forEach(tenant -> tenantDataSources.put(tenant.getName(), getDataSource(tenant)));
+        }
+
+        return tenantDataSources.values().iterator().next();
     }
 
     @Override
     protected DataSource selectDataSource(String tenantId) {
         log.info("obtaining dataSource for tenantId={}", tenantId);
+        if (DEFAULT.equalsIgnoreCase(tenantId)) {
+            final RuntimeException runtimeException = new RuntimeException(String.format("identifier=%s is not a tenant.", DEFAULT));
+            log.error("obtaining dataSource for tenantId={}", tenantId, runtimeException);
+            throw runtimeException;
+        }
 
         if (!tenantDataSources.containsKey(tenantId)) {
-            final Tenant tenant = tenantRepository.findByName(tenantId).orElseThrow(() -> new RuntimeException("Tenant not found"));
+            final Tenant tenant = tenantRepository.findByName(tenantId).orElseThrow(() -> new EntityNotFoundException("Tenant does not exist"));
 
             tenantDataSources.put(tenant.getName(), getDataSource(tenant));
         }
@@ -51,9 +62,7 @@ public class DefaultDataSourceBasedMultiTenantConnectionProvider extends Abstrac
 
     @Override
     public void stop() {
-        if (nonNull(tenantDataSources)) {
-            tenantDataSources.clear();
-        }
+        tenantDataSources.clear();
     }
 
     public void addDataSource(final Tenant tenant) {
@@ -63,6 +72,8 @@ public class DefaultDataSourceBasedMultiTenantConnectionProvider extends Abstrac
     }
 
     private DataSource initialize(String tenantIdentifier, DataSource dataSource) {
+        //LiquibaseRunner.runMigration(hds, dbName); // TODO use Liquibase
+
         final ClassPathResource schemaResource = new ClassPathResource("db/init/tenants/schema.sql");
         ClassPathResource dataResource = new ClassPathResource(String.format("db/init/tenants/%s/data.sql", tenantIdentifier));
 
@@ -80,7 +91,8 @@ public class DefaultDataSourceBasedMultiTenantConnectionProvider extends Abstrac
 
     private DataSource getDataSource(final Tenant tenant) {
         final TenantDataSourceConfig tenantDataSourceConfig = tenant.getTenantDataSourceConfig();
-        final DataSource tenantDataSource = initialize(tenant.getName(),
+
+        return initialize(tenant.getName(),
                 DataSourceBuilder.create(getClass().getClassLoader())
                         .url(tenantDataSourceConfig.getUrl())
                         .username(tenantDataSourceConfig.getUsername())
@@ -88,6 +100,5 @@ public class DefaultDataSourceBasedMultiTenantConnectionProvider extends Abstrac
                         .driverClassName(tenantDataSourceConfig.getDriverClassName())
                         .build()
         );
-        return tenantDataSource;
     }
 }

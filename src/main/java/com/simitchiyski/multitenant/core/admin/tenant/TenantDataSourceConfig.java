@@ -1,20 +1,22 @@
 package com.simitchiyski.multitenant.core.admin.tenant;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.domain.Persistable;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+
+import static java.util.Objects.isNull;
 
 @Getter
 @Setter
 @Entity
 @ToString
 @Table(name = "tenant_datasource")
-public class TenantDataSourceConfig {
+public class TenantDataSourceConfig  implements Persistable<Long> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
@@ -41,4 +43,9 @@ public class TenantDataSourceConfig {
     @NotNull
     @Column(name = "PASSWORD", nullable = false)
     private String password;
+
+    @Override
+    public boolean isNew() {
+        return isNull(id);
+    }
 }

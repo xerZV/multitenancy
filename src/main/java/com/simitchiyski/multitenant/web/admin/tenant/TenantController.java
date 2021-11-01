@@ -1,17 +1,16 @@
 package com.simitchiyski.multitenant.web.admin.tenant;
 
-import com.simitchiyski.multitenant.config.db.DefaultDataSourceBasedMultiTenantConnectionProvider;
-import com.simitchiyski.multitenant.core.admin.tenant.Tenant;
-import com.simitchiyski.multitenant.core.admin.tenant.TenantDataSourceConfig;
-import com.simitchiyski.multitenant.core.admin.tenant.TenantRepository;
+import com.simitchiyski.multitenant.core.admin.tenant.TenantService;
 import com.simitchiyski.multitenant.web.admin.tenant.dto.TenantCreateDto;
+import com.simitchiyski.multitenant.web.admin.tenant.dto.TenantDto;
+import com.simitchiyski.multitenant.web.admin.tenant.mapper.TenantMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 import static org.springframework.http.ResponseEntity.ok;
@@ -21,34 +20,16 @@ import static org.springframework.http.ResponseEntity.ok;
 @RequiredArgsConstructor
 @RequestMapping("/admin/tenants")
 public class TenantController {
-    private final TenantRepository tenantRepository;
-    private final DefaultDataSourceBasedMultiTenantConnectionProvider defaultDataSourceBasedMultiTenantConnectionProvider;
+    private final TenantMapper tenantMapper;
+    private final TenantService tenantService;
 
     @GetMapping
-    public ResponseEntity<List<Tenant>> tenantAppSettings() {
-        return ok(tenantRepository.findAll());
+    public ResponseEntity<List<TenantDto>> tenants() {
+        return ok(tenantMapper.toDto(tenantService.findAll()));
     }
 
     @PostMapping
-    @Transactional
-    public ResponseEntity<Tenant> createTenant(@Valid @RequestBody TenantCreateDto dto) {
-        Tenant entity = new Tenant();
-        final String name = dto.getName();
-        entity.setName(name);
-
-        final TenantDataSourceConfig tenantDataSourceConfig = new TenantDataSourceConfig();
-        tenantDataSourceConfig.setDriverClassName("org.h2.Driver");
-        tenantDataSourceConfig.setUrl("jdbc:h2:mem:" + name);
-        tenantDataSourceConfig.setUsername(name);
-        tenantDataSourceConfig.setPassword(name);
-        tenantDataSourceConfig.setTenant(entity);
-
-        entity.setTenantDataSourceConfig(tenantDataSourceConfig);
-        entity = tenantRepository.save(entity);
-
-        final Tenant finalEntity = entity;
-        new Thread(() -> defaultDataSourceBasedMultiTenantConnectionProvider.addDataSource(finalEntity)).start();
-
-        return ok(entity);
+    public ResponseEntity<TenantDto> createTenant(final @NotNull @Valid @RequestBody TenantCreateDto dto) {
+        return ok(tenantMapper.toDto(tenantService.create(dto)));
     }
 }

@@ -1,12 +1,12 @@
 package com.simitchiyski.multitenant.web.tenant.app.setting;
 
-import com.simitchiyski.multitenant.core.tenant.app.setting.AppSetting;
-import com.simitchiyski.multitenant.core.tenant.app.setting.AppSettingRepository;
+import com.simitchiyski.multitenant.core.tenant.app.setting.AppSettingService;
 import com.simitchiyski.multitenant.web.tenant.app.setting.dto.AppSettingCreateDto;
+import com.simitchiyski.multitenant.web.tenant.app.setting.dto.AppSettingDto;
+import com.simitchiyski.multitenant.web.tenant.app.setting.mapper.AppSettingMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -20,21 +20,16 @@ import static org.springframework.http.ResponseEntity.ok;
 @RequiredArgsConstructor
 @RequestMapping("/tenant/app/settings")
 public class AppSettingController {
-    private final AppSettingRepository appSettingRepository;
+    private final AppSettingMapper appSettingMapper;
+    private final AppSettingService appSettingService;
 
     @GetMapping
-    public ResponseEntity<List<AppSetting>> tenantAppSettings() {
-        return ok(appSettingRepository.findAll());
+    public ResponseEntity<List<AppSettingDto>> tenantAppSettings() {
+        return ok(appSettingMapper.toDto(appSettingService.findAll()));
     }
 
     @PostMapping
-    @Transactional
-    public ResponseEntity<AppSetting> tenantAppSettings(@Valid @NotNull @RequestBody AppSettingCreateDto createDto) {
-        final AppSetting entity = new AppSetting();
-        entity.setKey(createDto.getKey());
-        entity.setValue(createDto.getValue());
-        entity.setType(createDto.getType());
-
-        return ok(appSettingRepository.save(entity));
+    public ResponseEntity<AppSettingDto> tenantAppSettings(final @Valid @NotNull @RequestBody AppSettingCreateDto createDto) {
+        return ok(appSettingMapper.toDto(appSettingService.create(createDto)));
     }
 }

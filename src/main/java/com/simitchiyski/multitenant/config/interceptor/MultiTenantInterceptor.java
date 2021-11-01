@@ -6,7 +6,7 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import static com.simitchiyski.multitenant.config.tenant.DefaultCurrentTenantIdentifierResolver.DEFAULT_TENANT;
+import static com.simitchiyski.multitenant.config.tenant.DefaultCurrentTenantIdentifierResolver.DEFAULT;
 import static com.simitchiyski.multitenant.config.tenant.TenantContext.clear;
 import static com.simitchiyski.multitenant.config.tenant.TenantContext.setCurrentTenant;
 import static java.util.Objects.nonNull;
@@ -18,7 +18,7 @@ public class MultiTenantInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         final String tenantId = request.getHeader(TENANT_HEADER_NAME);
-        setCurrentTenant(nonNull(tenantId) ? tenantId : DEFAULT_TENANT);
+        setCurrentTenant(nonNull(tenantId) ? tenantId : DEFAULT);
         return true;
     }
 
